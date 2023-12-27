@@ -1,0 +1,122 @@
+import torch
+import torchvision
+import torchvision.transforms as T
+from PIL import Image
+import matplotlib.pyplot as plt
+from pathlib import Path
+import cv2
+import numpy as np
+from rich import inspect
+
+
+# new size
+w = h = 384
+
+# paths to test images
+img_dict = {
+    "tench": {
+        "original": "assets/tench.jpg",
+        "resized_bicubic": "build/tench_resized_bicubic.png",
+        "resized_bilinear": "build/tench_resized_bilinear.png",
+    },
+    "armadillo": {
+        "original": "assets/armadillo.jpg",
+        "resized_bicubic": "build/armadillo_resized_bicubic.png",
+        "resized_bilinear": "build/armadillo_resized_bilinear.png",
+    },
+    "polars": {
+        "original": "assets/polars.jpeg",
+        "resized_bicubic": "build/polars_resized_bicubic.png",
+        "resized_bilinear": "build/polars_resized_bilinear.png",
+    },
+}
+
+plt.figure(figsize=(35, 25))
+
+# iterate over test images
+for i, (key, dico) in enumerate(img_dict.items()):
+
+    print(f"----- Working with {key} -----")
+
+    # read vit.cpp-resized image (bicubic)
+    vit_cpp_resized_img_PIL = Image.open(dico["resized_bicubic"])
+
+    # read original image
+    img_path = Path(dico["original"])
+    img_PIL = Image.open(dico["original"])
+    print(f"Original image read with PIL in '{img_PIL.mode}' mode")
+
+    # resize with pytorch
+    transform = T.Resize(
+        (w, h), 
+        interpolation=torchvision.transforms.InterpolationMode.BICUBIC,
+    )
+    torch_resized_img = transform(img_PIL)
+    torch_resized_img.save(f"build/{img_path.name}_resized_torch_bicubic.png")
+
+    # resize with opencv
+    img_cv2 = cv2.imread(dico["original"], cv2.IMREAD_UNCHANGED)
+    cv2_resized_img = cv2.resize(img_cv2, (w, h), cv2.INTER_CUBIC)
+    cv2.imwrite(f"build/{img_path.name}_resized_cv2_bicubic.png", cv2_resized_img)
+
+    # compute difference 
+    torch_img = np.array(torch_resized_img) / 255.0
+    print(torch_img[:3, :3, 0])
+    print(torch_img.dtype)
+    print("torch_img", torch_img.shape, "\n")
+
+    vit_cpp_img = np.array(vit_cpp_resized_img_PIL) / 255.0
+    print(vit_cpp_img[:3, :3, 0])
+    print(vit_cpp_img.dtype)
+    print("vit_cpp_img", vit_cpp_img.shape, "\n")
+
+    cv2_resized_img = cv2_resized_img / 255.0
+    print(cv2_resized_img[:3, :3, 0])
+    print(cv2_resized_img.dtype)
+    print("cv2_resized_img", cv2_resized_img.shape, "\n")
+
+    
+
+
+
+    # comparative plot (& save)
+    # TODO
+
+    plt.subplot(len(img_dict), 4, 4*i + 1)
+    plt.imshow(img_PIL)
+    plt.title(f"{img_path.name} (orig)")
+
+    plt.subplot(len(img_dict), 4, 4*i + 2)
+    plt.imshow(torch_img)
+    plt.title(f"torch (bicubic)")
+
+    plt.subplot(len(img_dict), 4, 4*i + 3)
+    plt.imshow(vit_cpp_img)
+    plt.title(f"vit.cpp (bicubic)")
+
+    plt.subplot(len(img_dict), 4, 4*i + 4)
+    map = np.max(np.abs(vit_cpp_img-torch_img), axis=-1)
+    total_sum = np.sum(np.abs(vit_cpp_img-torch_img))
+    total_max = np.max(np.abs(vit_cpp_img-torch_img))
+    plt.imshow(
+        # np.max(np.abs(vit_cpp_img-torch_resized_img), axis=-1),
+        # (map - map.min()) / (map.max() - map.min()),
+        # (map - map.min()) / 255.0,
+        map,
+        cmap="hot",
+        vmin=0, vmax=1,
+    )
+    plt.colorbar()
+    plt.title(f"Difference (avg: {total_sum/(w*h):.4f},  max: {total_max:.4f})")
+    print(np.max(np.abs(vit_cpp_img-torch_img), axis=-1))
+
+
+plt.savefig("Comparison.png")
+
+
+
+
+
+
+
+

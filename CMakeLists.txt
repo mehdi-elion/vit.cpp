@@ -36,7 +36,7 @@ target_include_directories(quantize PUBLIC .)
 target_compile_features(quantize PUBLIC cxx_std_11)
 
 # benchmark executable
-add_executable(benchmark tests/benchmark.cpp vit.cpp)
-target_link_libraries(benchmark PUBLIC ggml)
-target_include_directories(benchmark PUBLIC .)
-target_compile_features(benchmark PUBLIC cxx_std_17)
+# add_executable(benchmark tests/benchmark.cpp vit.cpp)
+# target_link_libraries(benchmark PUBLIC ggml)
+# target_include_directories(benchmark PUBLIC .)
+# target_compile_features(benchmark PUBLIC cxx_std_17)
